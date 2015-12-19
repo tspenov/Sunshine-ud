@@ -1,9 +1,12 @@
 package com.example.ceci.sunshine;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -16,6 +19,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 import android.support.v4.app.Fragment;
+import com.example.ceci.sunshine.FetchWeatherTask;
 
 
 import org.json.JSONException;
@@ -44,6 +48,12 @@ public class ForecastFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onStart(){
+        super.onStart();
+        updateWeather();
     }
 
     @Override
@@ -126,85 +136,64 @@ public class ForecastFragment extends Fragment {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            Toast.makeText(getActivity(), "Settings selected", Toast.LENGTH_SHORT)
-                    .show();
+            //Toast.makeText(getActivity(), "Settings selected", Toast.LENGTH_SHORT)
+            //       .show();
+
+            Intent i = new Intent(getActivity(), SettingsActivity.class);
+            startActivity(i);
+
         }else if(id == R.id.action_refresh) {
 
-            FetchWeatherTask fw = new FetchWeatherTask();
-            fw.execute("Sofia");
+            updateWeather();
 
             Toast.makeText(getActivity(), "Refresh selected", Toast.LENGTH_SHORT)
                     .show();
 
+        }else if(id == R.id.action_view_map) {
+            showMap();
         }
 
         return super.onOptionsItemSelected(item);
     }
 
 
-    public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
+    public void showMap() {
 
-        private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
+        SharedPreferences settings
+                = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
-        @Override
-        protected String[] doInBackground(String... params) {
-
-            if (params.length == 0) {
-                return null;
-            }
-
-            String format = "json";
-            String units = "metric";
-            int numDays = 7;
-
-            final String FORECAST_BASE_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?";
-            final String QUERY_PARAM = "q";
-            final String FORMAT_PARAM = "mode";
-            final String UNITS_PARAM = "units";
-            final String DAYS_PARAM = "cnt";
-            final String APPID_PARAM = "APPID";
+        //location ny city name
+        String city = settings.getString("city", "London");
+        Uri geoLocation = Uri.parse("geo:0,0?q=" + city);
 
 
-
-            Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
-                        .appendQueryParameter(QUERY_PARAM, params[0])
-                        .appendQueryParameter(FORMAT_PARAM, format)
-                        .appendQueryParameter(UNITS_PARAM, units)
-                        .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
-                        .appendQueryParameter(APPID_PARAM, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
-                        .build();
-
-            Log.d(LOG_TAG, "Built URI " + builtUri.toString());
-
-
-
-
-            WeatherAPI wa = new WeatherAPI();
-            String jsonData = wa.fetchData(builtUri.toString());
-
-            ParseWeatherData parser = new ParseWeatherData();
-            String[] result  = new String[0];
-            try {
-                result = parser.getWeatherDataFromJson(jsonData, numDays);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            return result;
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(geoLocation);
+        if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+            startActivity(intent);
         }
+    }
 
-        @Override
-        protected void onPostExecute(String[] strings) {
-            if (strings != null) {
-                forecastAdapter.clear();
+    private void updateWeather() {
+        SharedPreferences settings
+                = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
-                for (String str : strings) {
-                    forecastAdapter.add(str);
-                }
+        //location ny city name
+        String city = settings.getString("city", "London");
+        FetchWeatherTask fw = new FetchWeatherTask(getActivity(), forecastAdapter);
 
-            }
-        }
 
+        //units: metric or imperial
+        //Resources res = getResources();
+        //String[] unitsArr = res.getStringArray(R.array.units);
+
+        String units = settings.getString("units", "metric");
+        String location = settings.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+        fw.execute(location);
+        //String units = unitsArr[unitsIdx];
 
     }
+
+
 }

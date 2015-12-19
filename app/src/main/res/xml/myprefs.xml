@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference
+        android:key="city"
+        android:defaultValue="Sofia"
+        android:title="City"
+        android:inputType="textShortMessage" />
+
+    <ListPreference
+        android:key="units"
+        android:title="Units"
+        android:summary="Choose unit"
+        android:entries="@array/units"
+        android:entryValues="@array/units_values"
+        android:defaultValue="0"/>
+
+</PreferenceScreen>
